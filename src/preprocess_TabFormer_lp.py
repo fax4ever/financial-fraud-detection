@@ -648,8 +648,6 @@ def preprocess_data(tabformer_base_path):
     NR_TXS = data[COL_TRANSACTION_ID].max() + 1
 
     # Check the the transaction, merchant and user ids are consecutive
-    id_range = data[COL_TRANSACTION_ID].min(), data[COL_TRANSACTION_ID].max()
-    print(f"Transaction ID range {id_range}")
     id_range = data[COL_MERCHANT_ID].min(), data[COL_MERCHANT_ID].max()
     print(f"Merchant ID range {id_range}")
     id_range = data[COL_USER_ID].min(), data[COL_USER_ID].max()
@@ -783,8 +781,6 @@ def preprocess_data(tabformer_base_path):
     data[COL_USER_ID] = data[COL_CARD].map(id_to_consecutive_id)
 
     # Check the the transaction, merchant and user ids are consecutive
-    id_range = data[COL_TRANSACTION_ID].min(), data[COL_TRANSACTION_ID].max()
-    print(f"Transaction ID range {id_range}")
     id_range = data[COL_MERCHANT_ID].min(), data[COL_MERCHANT_ID].max()
     print(f"Merchant ID range {id_range}")
     id_range = data[COL_USER_ID].min(), data[COL_USER_ID].max()
