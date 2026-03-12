@@ -5,9 +5,10 @@
 
 - [Overview](#overview)
   - [Software Components](#software-components)
+    - [Software Requirements](#software-requirements)
   - [Target Audience](#target-audience)
   - [Prerequisites](#prerequisites)
-  - [Hardware Requirements](#hardware-requirements)
+    - [Hardware Requirements](#hardware-requirements)
 - [Getting Started](#getting-started)
   - [Installation System Requirements](#installation-system-requirements)
   - [Obtain API key](#obtain-api-key)
@@ -17,7 +18,6 @@
     - [Conda Environment](#conda-environment)
     - [Authenticate Docker with NGC](#authenticate-docker-with-ngc)
   - [Running the workflow](#running-the-workflow)
-  - [Customizing the Workflow](#customizing-the-workflow)
 - [License](#license)
 - [Terms of Use](#terms-of-use)
 
@@ -43,23 +43,16 @@ This blueprint does not use any NVIDIA hosted services and runs fully in a local
 <br>
 
 ## Software Components
-
-### The following software components are used:
-
+The following software components are used:
 - [financial-fraud-training container](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/cugraph/containers/financial-fraud-training)
 - [NVIDIA Dynamo-Triton](https://developer.nvidia.com/dynamo)
 
 ### Software Requirements
 - Operating System: Ubuntu 20.04 or newer
-- NVIDIA Driver version: 535 or newer
-- NVIDIA CUDA version: 12.4 or newer
+- NVIDIA Driver version: 555.42.02 or newer
+- NVIDIA CUDA version: 12.5 or newer
 - NVIDIA Container Toolkit version: 1.15.0 or newer
 - Docker version: Docker version 26 or newer
-
-
-
-
-Everything is run via a Jupyter Notebook.
 
 <br>
 
@@ -69,7 +62,7 @@ This Blueprint targets users that:
 
 - understand the financial fraud space
 - understand how to deploy container-based microservices
-- understands how to run a Jupyter notebook
+- understand how to run a Jupyter notebook
 
 This notebook is a simple example of how to orchestrate a financial fraud detection workflow that leverages the financial-fraud-training container. The notebook uses a synthetic dataset and produces the accuracy and a confusion matrix. Using real data in a production environment would not alter the workflow.
 
@@ -77,7 +70,7 @@ This notebook is a simple example of how to orchestrate a financial fraud detect
 
 ## Prerequisites
 
-- [Obtain NVIDIA NVAIE key](#obtain-nvidia-nvaie-key)
+- [Obtain NVIDIA key](#obtain-api-key)
 - [CUDA 12.5+ drivers](https://developer.nvidia.com/cuda-downloads) installed
 
 <br>
@@ -143,7 +136,7 @@ Note: Add the environment variable to the `.bashrc` file to persist it beyond a 
 
 ```bash
 # to persist the key
-echo "export NVIDIA_API_KEY=your_key" >> ~./bashrc
+echo "export NVIDIA_API_KEY=your_key" >> ~/.bashrc
 ```
 
 ### Conda Environment
@@ -168,7 +161,7 @@ conda activate notebook_env
 
 ### Authenticate Docker with NGC
 
-In order to pull images required by the Blueprint from NGC, you must first authenticate Docker with NGC. You can use same the NVIDIA API Key obtained in the [Obtain API key](#obtain-api-key) section (saved in the `NVIDIA_API_KEY` environment variable).
+In order to pull images required by the Blueprint from NGC, you must first authenticate Docker with NGC. You can use the same NVIDIA API Key obtained in the [Obtain API key](#obtain-api-key) section (saved in the `NVIDIA_API_KEY` environment variable).
 
 ```bash
 echo "${NVIDIA_API_KEY}" | docker login nvcr.io -u '$oauthtoken' --password-stdin
@@ -192,12 +185,13 @@ __Option 1:__
 
 __Option 2:__
 
- Starting Jupyter Notebook with the notebook:
+ Starting Jupyter Notebook with [notebooks/financial-fraud-usage-v2.ipynb](notebooks/financial-fraud-usage-v2.ipynb).
 
 ```bash
-   cd notebook
-   jupyter notebook financial-fraud-usage.ipynb
+   cd notebooks
+   jupyter notebook financial-fraud-usage-v2.ipynb
 ```
+NOTE: If you are interested in node prediction, use [notebooks/financial-fraud-usage-np.ipynb](notebooks/financial-fraud-usage-np.ipynb) instead.
 
 __Option 3:__
 
@@ -220,11 +214,6 @@ $ jupyter notebook
 ```
 
 Via the browser, connect to the specified URL and process the notebook.
-
-
-## Customizing the Workflow
-
-The NIM offers a number of customization options. Detail on those can be found here (*** NEED LINK).  
 
 <br>
 
