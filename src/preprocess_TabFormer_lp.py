@@ -755,6 +755,34 @@ def preprocess_data(tabformer_base_path):
         out_path, header=True, index=False, columns=columns_of_transformed_txs
     )
 
+    # # Create and save feature masks for training data
+    user_mask_map, user_mask = create_feature_mask(user_feature_columns, 0)
+    mx_mask_map, mx_mask = create_feature_mask(
+        mx_feature_columns, np.max(user_mask) + 1
+    )
+    tx_mask_map, tx_mask = create_feature_mask(
+        columns_of_transformed_txs, np.max(mx_mask) + 1
+    )
+
+    # np.savetxt(
+    #     os.path.join(tabformer_gnn, "nodes/user_feature_mask.csv"),
+    #     user_mask,
+    #     delimiter=",",
+    #     fmt="%d",
+    # )
+    # np.savetxt(
+    #     os.path.join(tabformer_gnn, "nodes/merchant_feature_mask.csv"),
+    #     mx_mask,
+    #     delimiter=",",
+    #     fmt="%d",
+    # )
+    # np.savetxt(
+    #     os.path.join(tabformer_gnn, "edges/user_to_merchant_feature_mask.csv"),
+    #     tx_mask,
+    #     delimiter=",",
+    #     fmt="%d",
+    # )
+
     ## Test data
 
     data = data_all[test_idx].copy()
@@ -878,14 +906,7 @@ def preprocess_data(tabformer_base_path):
         out_path, header=True, index=False, columns=columns_of_transformed_txs
     )
 
-    user_mask_map, user_mask = create_feature_mask(user_feature_columns, 0)
-    mx_mask_map, mx_mask = create_feature_mask(
-        mx_feature_columns, np.max(user_mask) + 1
-    )
-    tx_mask_map, tx_mask = create_feature_mask(
-        columns_of_transformed_txs, np.max(mx_mask) + 1
-    )
-
+    # Test feature masks were already created for training data, just save them for test
     np.savetxt(
         os.path.join(tabformer_gnn, "test_gnn/nodes/user_feature_mask.csv"),
         user_mask,
@@ -944,7 +965,7 @@ def load_hetero_graph(base):
                     node_feature_mask[node_name] = mask_df
                     feature_mask = mask_df.to_numpy(dtype=np.int32).ravel()
                 else:
-                    # create a must with all zeros
+                    # create a mask with all zeros
                     feature_mask = np.zeros(node_df.shape[1], dtype=np.int32)
                 out[f"feature_mask_{node_name}"] = feature_mask
 
@@ -995,7 +1016,7 @@ def load_hetero_graph(base):
                 edge_feature_mask[edge_name].to_numpy(dtype=np.int32).ravel()
             )
         else:
-            # create a must with all zeros
+            # create a mask with all zeros
             out[f"edge_feature_mask_{edge_name}"] = np.zeros(
                 edge_attrs[edge_name].shape[1], dtype=np.int32
             )
