@@ -1,0 +1,43 @@
+# ConfigMap for Kubeflow Pipelines: training container gets a full mount of fraud-data
+# at /data, so data_dir must be the gnn working directory (see fraud-training templates).
+# Apply in the same namespace as the pipeline run, e.g.:
+#   oc apply -f openshift/pipeline/fraud_kfp_configmap.yaml
+#
+# Keep this in sync with openshift/fraud-training/values.yaml (paths.data_dir is the
+# only field that typically differs from the Helm ConfigMap).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fraud-kfp-training-config
+data:
+  config.json: |
+    {
+      "paths": {
+        "data_dir": "/data/TabFormer/gnn",
+        "output_dir": "/trained_models"
+      },
+      "models": [
+        {
+          "kind": "GNN_XGBoost",
+          "gpu": "single",
+          "hyperparameters": {
+            "gnn": {
+              "hidden_channels": 32,
+              "n_hops": 2,
+              "layer": "SAGEConv",
+              "dropout_prob": 0.1,
+              "batch_size": 4096,
+              "fan_out": 10,
+              "num_epochs": 8
+            },
+            "xgb": {
+              "max_depth": 6,
+              "learning_rate": 0.2,
+              "num_parallel_tree": 3,
+              "num_boost_round": 512,
+              "gamma": 0.0
+            }
+          }
+        }
+      ]
+    }

@@ -1,0 +1,189 @@
+# PIPELINE DEFINITION
+# Name: fraud-preprocess-train
+# Inputs:
+#    fraud_data_pvc: str [Default: 'fraud-data']
+#    fraud_models_pvc: str [Default: 'fraud-models']
+#    ngc_pull_secret: str [Default: 'ngc-secret']
+#    training_configmap: str [Default: 'fraud-kfp-training-config']
+#    training_image: str [Default: 'nvcr.io/nvidia/cugraph/financial-fraud-training:2.0.0']
+components:
+  comp-run-preprocess:
+    executorLabel: exec-run-preprocess
+  comp-run-training:
+    executorLabel: exec-run-training
+    inputDefinitions:
+      parameters:
+        training_image:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-run-preprocess:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - run_preprocess
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef run_preprocess():\n    import os\n    import shutil\n    import\
+          \ sys\n\n    sys.path.insert(0, \"/workspace/src\")\n    print(\"Setting\
+          \ up symlink...\", flush=True)\n    raw_dir = \"/data/TabFormer/raw\"\n\
+          \    link = os.path.join(raw_dir, \"card_transaction.v1.csv\")\n    os.makedirs(raw_dir,\
+          \ exist_ok=True)\n    if os.path.exists(link) or os.path.islink(link):\n\
+          \        os.remove(link)\n    os.symlink(\"/workspace/raw/card_transaction.v1.csv\"\
+          , link)\n    print(\"Starting preprocessing...\", flush=True)\n    from\
+          \ preprocess_TabFormer_lp import preprocess_data\n\n    preprocess_data(\"\
+          /data/TabFormer\")\n    print(\"Cleaning up...\", flush=True)\n    os.remove(link)\n\
+          \    shutil.rmtree(raw_dir)\n\n"
+        image: quay.io/fercoli/fraud-preprocess:latest
+        resources:
+          accelerator:
+            count: '1'
+            resourceCount: '1'
+          cpuLimit: 8.0
+          cpuRequest: 4.0
+          memoryLimit: 51.539607552
+          memoryRequest: 17.179869184
+          resourceCpuLimit: '8'
+          resourceCpuRequest: '4'
+          resourceMemoryLimit: 48Gi
+          resourceMemoryRequest: 16Gi
+    exec-run-training:
+      container:
+        command:
+        - /opt/nvidia/nvidia_entrypoint.sh
+        - bash
+        - -c
+        - cp /config/config.json /app/config.json && python /app/main.py --config
+          /app/config.json
+        image: '{{$.inputs.parameters[''training_image'']}}'
+        resources:
+          accelerator:
+            count: '1'
+            resourceCount: '1'
+          cpuLimit: 8.0
+          cpuRequest: 4.0
+          memoryLimit: 51.539607552
+          memoryRequest: 17.179869184
+          resourceCpuLimit: '8'
+          resourceCpuRequest: '4'
+          resourceMemoryLimit: 48Gi
+          resourceMemoryRequest: 16Gi
+pipelineInfo:
+  name: fraud-preprocess-train
+root:
+  dag:
+    tasks:
+      run-preprocess:
+        cachingOptions: {}
+        componentRef:
+          name: comp-run-preprocess
+        taskInfo:
+          name: run-preprocess
+      run-training:
+        cachingOptions: {}
+        componentRef:
+          name: comp-run-training
+        dependentTasks:
+        - run-preprocess
+        inputs:
+          parameters:
+            training_image:
+              componentInputParameter: training_image
+        taskInfo:
+          name: run-training
+  inputDefinitions:
+    parameters:
+      fraud_data_pvc:
+        defaultValue: fraud-data
+        isOptional: true
+        parameterType: STRING
+      fraud_models_pvc:
+        defaultValue: fraud-models
+        isOptional: true
+        parameterType: STRING
+      ngc_pull_secret:
+        defaultValue: ngc-secret
+        isOptional: true
+        parameterType: STRING
+      training_configmap:
+        defaultValue: fraud-kfp-training-config
+        isOptional: true
+        parameterType: STRING
+      training_image:
+        defaultValue: nvcr.io/nvidia/cugraph/financial-fraud-training:2.0.0
+        isOptional: true
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.13.0
+---
+platforms:
+  kubernetes:
+    deploymentSpec:
+      executors:
+        exec-run-preprocess:
+          activeDeadlineSeconds: '10800'
+          imagePullPolicy: Always
+          nodeSelector:
+            labels:
+              nvidia.com/gpu.present: 'true'
+          pvcMount:
+          - componentInputParameter: fraud_data_pvc
+            mountPath: /data
+            pvcNameParameter:
+              componentInputParameter: fraud_data_pvc
+          tolerations:
+          - effect: NoSchedule
+            key: g6-gpu
+            operator: Exists
+          - effect: NoSchedule
+            key: p4-gpu
+            operator: Exists
+        exec-run-training:
+          activeDeadlineSeconds: '14400'
+          configMapAsVolume:
+          - configMapNameParameter:
+              componentInputParameter: training_configmap
+            mountPath: /config
+            optional: false
+          imagePullPolicy: IfNotPresent
+          imagePullSecret:
+          - secretNameParameter:
+              componentInputParameter: ngc_pull_secret
+          nodeSelector:
+            labels:
+              nvidia.com/gpu.present: 'true'
+          pvcMount:
+          - componentInputParameter: fraud_data_pvc
+            mountPath: /data
+            pvcNameParameter:
+              componentInputParameter: fraud_data_pvc
+          - componentInputParameter: fraud_models_pvc
+            mountPath: /trained_models
+            pvcNameParameter:
+              componentInputParameter: fraud_models_pvc
+          tolerations:
+          - effect: NoSchedule
+            key: g6-gpu
+            operator: Exists
+          - effect: NoSchedule
+            key: p4-gpu
+            operator: Exists

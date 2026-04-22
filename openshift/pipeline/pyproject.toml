@@ -1,0 +1,13 @@
+[project]
+name = "fraud-kfp-pipeline"
+version = "0.1.0"
+description = "Kubeflow Pipelines compiler deps for the financial fraud preprocess + training pipeline"
+requires-python = ">=3.9,<3.13"
+dependencies = [
+  "kfp>=2.8.0",
+  "kfp-kubernetes>=1.3.0",
+  "protobuf>=4.25,<6",
+]
+
+[tool.uv]
+package = false
